@@ -1,0 +1,89 @@
+LUCAS CHAVARRIA
+
+1.
+SELECT fname, lname, sname FROM stores7.customer
+INNER JOIN stores7.state
+ON customer.state = state.code
+WHERE sname = "Florida" OR sname = "Arizona" OR sname = "Oklahoma"
+ORDER BY (CASE sname
+WHEN "Florida"	THEN 1
+WHEN "Arizona"	THEN 2
+WHEN "Oklahoma"	THEN 3
+END);
+
+2.
+SELECT customer_num, fname, lname, city, state, CONCAT( '$', IF (SUM(x.total_price) IS NULL, 0.00, SUM(x.total_price))) AS amount_spent
+FROM stores7.customer
+LEFT OUTER JOIN 
+(SELECT manu_name, customer_num, order_num, total_price FROM  stores7.manufact 
+INNER JOIN stores7.items USING (manu_code)
+INNER JOIN stores7.orders USING (order_num)
+INNER JOIN stores7.customer USING (customer_num)
+WHERE manu_name = "Hero") AS x USING (customer_num)
+GROUP BY customer_num;
+
+3.
+SELECT customer_num, fname, lname, city, state, CONCAT( '$', IF ((SUM(x.total_price ) + x.ship_charge) IS NULL, 0.00, (SUM(x.total_price) + x.ship_charge))) AS amount_spent
+FROM stores7.customer
+LEFT OUTER JOIN 
+(SELECT customer_num, order_num, total_price, ship_charge FROM  stores7.manufact 
+INNER JOIN stores7.items USING (manu_code)
+INNER JOIN stores7.orders USING (order_num)
+INNER JOIN stores7.customer USING (customer_num)) AS x USING (customer_num)
+GROUP BY customer_num;
+
+4.
+SELECT description FROM stores7.stock
+LEFT OUTER JOIN stores7.items 
+ON stock.stock_num = items.stock_num AND stock.manu_code = items.manu_code
+WHERE order_num IS NULL;
+
+5.
+SELECT order_num, customer_num, ship_weight FROM stores7.orders
+CROSS JOIN (SELECT AVG(ship_weight) AS average FROM stores7.orders) as x
+ORDER BY ABS(x.average - orders.ship_weight)
+LIMIT 1;
+
+7.
+SELECT dname, pname, plocation, 
+@location := dept_locations.dlocation
+FROM company.project
+INNER JOIN company.dept_locations
+ON project.dnum = dept_locations.dnumber AND project.plocation = dept_locations.dlocation
+INNER JOIN company.department
+ON project.dnum = department.dnumber
+WHERE plocation != @location;
+
+8.
+SELECT pname, total_hours FROM 
+(SELECT pname, SUM(x.hours) AS total_hours FROM company.project
+INNER JOIN
+(SELECT pno, hours FROM company.works_on) AS x ON project.pnumber = x.pno
+GROUP BY pname) AS y
+INNER JOIN
+(SELECT MAX(total_hours) AS max_hours FROM (SELECT pname, SUM(x.hours) AS total_hours FROM company.project
+INNER JOIN
+(SELECT pno, hours FROM company.works_on) AS x ON project.pnumber = x.pno
+GROUP BY pname) AS y) AS z
+ON z.max_hours = y.total_hours;
+
+9.
+SELECT fname, lname, pname FROM 
+(SELECT lname, fname, pno FROM company.employee
+LEFT OUTER JOIN company.works_on
+ON employee.ssn = works_on.essn) AS x
+INNER JOIN
+(SELECT pname, pno, y.total_hours FROM 
+(SELECT pname, pno, SUM(hours) AS total_hours FROM company.project
+INNER JOIN company.works_on ON project.pnumber = works_on.pno
+GROUP BY pname) AS y
+ORDER BY total_hours
+LIMIT 2) AS y
+USING (pno);
+
+10.
+SELECT title, SUM(amount) AS total FROM sakila.film
+LEFT OUTER JOIN sakila.inventory USING (film_id)
+LEFT OUTER JOIN sakila.rental USING (inventory_id)
+LEFT OUTER JOIN sakila.payment USING (rental_id)
+GROUP BY title;
